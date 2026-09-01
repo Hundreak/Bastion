@@ -107,7 +107,7 @@ function createWindow() {
     height: 980,
     minWidth: 1200,
     minHeight: 760,
-    title: 'NOYKARA Server Console',
+    title: 'Bastion',
     backgroundColor: '#050713',
     show: false,
     autoHideMenuBar: true,
@@ -422,7 +422,7 @@ function commandExists(command) {
 }
 
 async function openPlainTextEditor(localPath) {
-  const envEditor = String(process.env.NOYKARA_TEXT_EDITOR || '').trim();
+  const envEditor = String(process.env.BASTION_TEXT_EDITOR || '').trim();
   const preferred = [];
 
   if (envEditor) preferred.push({ command: envEditor, args: [localPath], label: envEditor });

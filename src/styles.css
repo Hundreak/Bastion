@@ -1,5 +1,5 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   NOYKARA Server Console — Premium Dark UI
+   Bastion — Premium Dark UI
    ═══════════════════════════════════════════════════════════════════════════ */
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
@@ -448,7 +448,7 @@ input::placeholder { color: var(--muted); }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   NOYSEC COMMAND CENTER
+   PROJECT COMMAND CENTER
    ═══════════════════════════════════════════════════════════════════════════ */
 .ns-station {
   flex: 0 0 auto;

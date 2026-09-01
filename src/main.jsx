@@ -121,7 +121,7 @@ function formatDate(value) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   NOYSEC COMMAND CENTER
+   PROJECT COMMAND CENTER
    ═══════════════════════════════════════════════════════════════════ */
 function ProjectCommandCenter({
   project, maintenanceState, connectedToSelectedServer,
@@ -170,7 +170,7 @@ function ProjectCommandCenter({
 
         <div className="ns-meta">
           <div className="ns-title-row">
-            <h2>NoySec Platform</h2>
+            <h2>{project.label}</h2>
             {statusKnown ? (
               <div className={`ns-badge ${isOnMaintenance ? 'ns-badge--maint' : 'ns-badge--live'}`}>
                 <span className="ns-badge-dot" />
@@ -208,7 +208,7 @@ function ProjectCommandCenter({
           )}
         </div>
         <div className="ns-deploy-body">
-          <strong>{isDeploying ? 'Deploy sürüyor…' : 'NoySec Güncelle'}</strong>
+          <strong>{isDeploying ? 'Deploy sürüyor…' : `${project.label} Güncelle`}</strong>
           <small>Localdeki tüm değişiklikler → sunucu · build · infra · restart · sağlık kontrol</small>
         </div>
         <div className="ns-deploy-chevron">›</div>
@@ -262,7 +262,7 @@ function ProjectCommandCenter({
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   GENERIC PROJECT STRIP (non-NoySec servers)
+   GENERIC PROJECT STRIP (servers without a command centre)
    ═══════════════════════════════════════════════════════════════════ */
 function ProjectStrip({
   activeServer, serverProjects, connectedToSelectedServer,
@@ -762,7 +762,7 @@ function App() {
             </svg>
           </div>
           <div>
-            <span>NOYKARA KONSOL</span>
+            <span>BASTION</span>
             <strong>Sunucu Paneli</strong>
             <small>{status}</small>
           </div>
@@ -1131,7 +1131,7 @@ function TerminalView({ tab, active, clearTick, copyTick, onCopied }) {
     terminalRef.current = term;
     fitRef.current = fit;
 
-    term.writeln('\x1b[36mNOYKARA Server Console\x1b[0m');
+    term.writeln('\x1b[36mBastion\x1b[0m');
     term.writeln(`Bağlantı hazırlanıyor: ${tab.config.username}@${tab.config.host}:${tab.config.port}`);
     term.writeln('');
 
