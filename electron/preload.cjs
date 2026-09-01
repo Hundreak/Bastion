@@ -53,7 +53,11 @@ contextBridge.exposeInMainWorld('serverConsole', {
     write: (terminalId, data) => ipcRenderer.invoke('ssh:write', { terminalId, data }),
     resize: (terminalId, cols, rows) => ipcRenderer.invoke('ssh:resize', { terminalId, cols, rows }),
     stopTerminal: (terminalId) => ipcRenderer.invoke('ssh:stop-terminal', terminalId),
-    stopAll: () => ipcRenderer.invoke('ssh:stop-all')
+    stopAll: () => ipcRenderer.invoke('ssh:stop-all'),
+    // Host key outcome. `first-seen` is informational; `mismatch` means the
+    // connection was refused because the server presented a different key than
+    // the one recorded, which is what interception looks like.
+    onHostKey: (callback) => subscribe('ssh:host-key', callback)
   },
   clipboard: {
     writeText: (text) => ipcRenderer.invoke('clipboard:write-text', text),

@@ -98,6 +98,35 @@ Values that reach a shell are validated rather than trusted: the deploy script n
 as a basename so a descriptor cannot name `../../etc/anything`, and a maintenance flag must
 be an absolute path with no traversal and no shell metacharacters.
 
+## Host keys are verified
+
+`ssh2` documents its default without ambiguity:
+
+> **hostVerifier** — … **Default:** *(auto-accept if `hostVerifier` is not set)*
+
+This client never set one, so every host key was trusted on sight — including a substituted
+one, on sessions that authenticate as an administrator and then type commands into a shell.
+
+The policy is now trust-on-first-use, the same thing OpenSSH does on a fresh machine. The
+first key seen for a host is recorded in `known_hosts.json` under the app's data directory;
+a later key that does not match is **refused**, not prompted. A prompt at that moment is
+answered "yes" by someone who wants their terminal, and the single occasion it matters is
+the occasion that answer is wrong.
+
+A first connection is still trusted blindly — trust-on-first-use cannot do better without a
+key distributed out of band — but it is recorded, so it can only be believed once. The
+decision itself lives in `electron/host-keys.cjs`, apart from Electron, because it is the
+security-critical part and it is worth being able to test:
+
+```js
+decideHostKey(known, actual)
+//  no record        → { status: 'first-seen', trust: true, remember: true }
+//  same as recorded → { status: 'known',      trust: true }
+//  different        → { status: 'mismatch',   trust: false }   ← never recorded
+```
+
+A CI job fails the build if `hostVerifier` disappears from the connection path.
+
 ## Deploys
 
 `electron/scripts/example-remote-deploy.sh` is a worked example, and the part worth copying

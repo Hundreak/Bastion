@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const crypto = require('crypto');
+const { fingerprint, decideHostKey } = require('./host-keys.cjs');
 const { Duplex } = require('stream');
 const { Client } = require('ssh2');
 const { spawn, execFileSync } = require('child_process');
@@ -231,6 +232,57 @@ function createProxyStream(proxyCommand) {
 
   stream._proc = proc;
   return stream;
+}
+
+/**
+ * Host key verification, trust-on-first-use.
+ *
+ * ssh2 documents its default plainly: "auto-accept if hostVerifier is not set".
+ * This client never set one, so every host key was accepted without a question —
+ * including one presented by whoever happened to be between the client and the
+ * server. On sessions that log in as an administrator and then type commands,
+ * that is the whole game.
+ *
+ * The policy here is what OpenSSH does on a fresh machine. The first key seen
+ * for a host is recorded; a later key that does not match it is refused, which
+ * is the case that actually indicates interception. A first connection is still
+ * trusted blindly — TOFU cannot do better without a key distributed out of band
+ * — but it is recorded, so it can only be believed once.
+ */
+function knownHostsPath() {
+  return path.join(app.getPath('userData'), 'known_hosts.json');
+}
+
+function readKnownHosts() {
+  try {
+    const raw = fs.readFileSync(knownHostsPath(), 'utf8');
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? parsed : {};
+  } catch {
+    return {};
+  }
+}
+
+function rememberHostKey(hostId, fingerprint) {
+  const store = readKnownHosts();
+  store[hostId] = { fingerprint, firstSeen: new Date().toISOString() };
+  try {
+    fs.mkdirSync(path.dirname(knownHostsPath()), { recursive: true });
+    fs.writeFileSync(knownHostsPath(), `${JSON.stringify(store, null, 2)}\n`, { mode: 0o600 });
+  } catch (err) {
+    console.error(`[ssh] known_hosts yazılamadı: ${err.message}`);
+  }
+}
+
+function makeHostVerifier(hostId, onTrust) {
+  return (key) => {
+    const actual = fingerprint(key);
+    const known = readKnownHosts()[hostId]?.fingerprint;
+    const decision = decideHostKey(known, actual);
+    if (decision.remember) rememberHostKey(hostId, actual);
+    onTrust({ ...decision, fingerprint: actual });
+    return decision.trust;
+  };
 }
 
 function buildSshConfig(input) {
@@ -649,6 +701,21 @@ ipcMain.handle('ssh:start-terminal', async (_event, payload) => {
 
     conn.on('end', () => emit('ssh:exit', { terminalId, code: null, signal: 'end' }));
     conn.on('close', () => emit('ssh:exit', { terminalId, code: null, signal: 'close' }));
+
+    // The host identity is the address actually dialled. With a proxy command the
+    // config has no host of its own, so the payload's host is what the entry is
+    // keyed on — otherwise every tunnelled server would share one entry.
+    const hostId = `${String(payload.host || config.host || '')}:${Number(payload.port || config.port || 22)}`;
+    config.hostVerifier = makeHostVerifier(hostId, (result) => {
+      if (result.status === 'first-seen') {
+        emit('ssh:host-key', { terminalId, status: 'first-seen', hostId, fingerprint: result.fingerprint });
+      } else if (result.status === 'mismatch') {
+        emit('ssh:host-key', {
+          terminalId, status: 'mismatch', hostId,
+          fingerprint: result.fingerprint, expected: result.expected
+        });
+      }
+    });
 
     try {
       conn.connect(config);

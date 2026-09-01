@@ -62,5 +62,9 @@ jobs:
             echo "::error::config/console.json is committed; it must stay gitignored"; fail=1
           fi
 
-          [ "$fail" -eq 0 ] && echo "Source tree names no fleet."
+          if ! grep -q 'hostVerifier' electron/main.cjs; then
+            echo "::error::ssh2 auto-accepts host keys when hostVerifier is unset"; fail=1
+          fi
+
+          [ "$fail" -eq 0 ] && echo "Source tree names no fleet, and verifies host keys."
           exit $fail
