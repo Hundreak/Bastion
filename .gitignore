@@ -1,0 +1,9 @@
+node_modules/
+dist/
+build/
+release/
+*.log
+
+# The fleet. Hosts, usernames, key paths and remote layouts are deployment
+# facts; config/console.example.json documents the shape instead.
+config/console.json

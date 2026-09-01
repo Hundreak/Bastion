@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Tests and renderer build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+      - name: Pin npm to the major that wrote the lock file
+        run: npm install -g npm@11
+      - name: Install
+        # electron-builder's binary is not needed to run tests or build the
+        # renderer, and it is the slowest thing in the install.
+        run: npm ci --no-audit --no-fund
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
+      - run: npm test
+      - run: npx vite build
+
+  guard:
+    name: No fleet in the source tree
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Source must name no real host, IP or home directory
+        # The app previously carried three production hosts inline — two by raw
+        # IP, each with `username: "root"`, one with the filename of its private
+        # key and its tunnel command. That belongs in config/console.json, which
+        # is gitignored. This check is what keeps it there when someone is in a
+        # hurry, which is exactly when it would go back.
+        run: |
+          fail=0
+
+          if grep -rnE '"[0-9]{1,3}(\.[0-9]{1,3}){3}"' src/ electron/ \
+             | grep -vE '127\.0\.0\.1|0\.0\.0\.0'; then
+            echo "::error::a literal IP address is in the source tree"; fail=1
+          fi
+
+          if grep -rn '/home/[a-z]' src/ electron/ config/; then
+            echo "::error::an absolute home directory is in the source tree"; fail=1
+          fi
+
+          if grep -rnE "username:\s*'root'|\"username\":\s*\"root\"" src/ config/; then
+            echo "::error::a default of root login is in the source tree"; fail=1
+          fi
+
+          if [ -f config/console.json ]; then
+            echo "::error::config/console.json is committed; it must stay gitignored"; fail=1
+          fi
+
+          [ "$fail" -eq 0 ] && echo "Source tree names no fleet."
+          exit $fail

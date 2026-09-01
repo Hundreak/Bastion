@@ -1,0 +1,58 @@
+{
+  "$comment": [
+    "Copy this file to config/console.json and edit it. console.json is gitignored:",
+    "server hostnames, usernames, key paths and remote directory layouts are",
+    "deployment facts, not source code, and a repository is the wrong place for",
+    "them even when every host is behind a firewall."
+  ],
+
+  "servers": [
+    {
+      "id": "app-prod",
+      "short": "AP",
+      "title": "Application server",
+      "subtitle": "app.example.com",
+      "host": "app.example.com",
+      "port": 22,
+      "username": "deploy",
+      "status": "Aktif",
+      "note": "2 proje"
+    },
+    {
+      "id": "tunnelled-prod",
+      "short": "TP",
+      "title": "Tunnelled server",
+      "subtitle": "reached through an SSH proxy",
+      "host": "ssh.example.com",
+      "port": 22,
+      "username": "deploy",
+      "keyPath": "~/.ssh/deploy_key.pem",
+      "proxyCommand": "cloudflared access ssh --hostname ssh.example.com",
+      "status": "Hazır",
+      "note": "1 proje"
+    }
+  ],
+
+  "projects": [
+    {
+      "key": "example-web",
+      "serverId": "app-prod",
+      "label": "Example Web",
+      "buttonLabel": "Example Web Güncelle",
+      "domain": "app.example.com",
+      "icon": "EW",
+      "accent": "cyan",
+      "script": "example-remote-deploy.sh",
+      "localProjectPath": "~/projects/example-web",
+      "remoteDir": "/var/www/example-web/current",
+      "envPath": "/opt/example-web/.env",
+      "envButtonLabel": "Example .env",
+      "supportsMaintenance": true,
+      "description": "Lokal build alınır, sunucuya aktarılır, atomik symlink swap ile kesintisiz güncellenir. Hata olursa otomatik rollback.",
+      "confirmText": "Canlı güncelleme başlatılsın mı? Sunucudaki .env korunur, mevcut release yedeklenir, Nginx test edilip reload edilir.",
+      "startLog": "Canlı güncelleme başlatıldı.",
+      "successText": "Güncelleme tamamlandı.",
+      "steps": ["Kontrol", "NPM", "Build", "Aktar", "Yedekle", "Swap", "Nginx", "Kontrol"]
+    }
+  ]
+}
